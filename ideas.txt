@@ -1,0 +1,4 @@
+3d boids
+pathfinding visualizatie
+particle flowfield simulatie
+solar system simulatie
