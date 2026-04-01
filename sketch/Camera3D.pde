@@ -16,7 +16,7 @@ class CameraSettings
   char backwards = 's';
   char right = 'd';
   char up = ' ';
-  char down = ' ';
+  char down = 'q';
   char sprint = 'x';
   char lock = 'e';
 }
@@ -136,7 +136,7 @@ class Camera3D
   {
     PVector center = PVector.add(pos, forward());
     float cameraZ = (height/2.0) / tan(radians(settings.fov)/2.0);
-    perspective(radians(settings.fov), float(width)/float(height), cameraZ/10.0, cameraZ*10.0);
+    perspective(radians(settings.fov), float(width)/float(height), cameraZ/50.0, cameraZ*10.0);
     camera(pos.x, pos.y, pos.z, center.x, center.y, center.z, 0, 1, 0);
   }
 
@@ -164,7 +164,7 @@ class Camera3D
     stroke(255);
     strokeWeight(2);
     
-    float size = 15;
+    float size = 10;
     line(width/2 - size, height/2, width/2 + size, height/2);
     line(width/2, height/2 - size, width/2, height/2 + size);
   
