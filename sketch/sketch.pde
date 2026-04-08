@@ -13,12 +13,12 @@ void setup()
   
   cam = new Camera3D(new PVector(0, 0, 0), camSettings);
   
-  scene = new Scene(2000, 2000, 2000);
+  scene = new Scene(2500, 2500, 2500);
   
   boidSettings = new BoidSettings();
   
   boidSettings.maxSpeed = 3.0;
-  boidSettings.maxForce = 0.08;
+  boidSettings.maxForce = 0.04;
   
   boidSettings.perception = 128.0;
   
@@ -27,7 +27,7 @@ void setup()
   boidSettings.cohWeight = 1.0;
   
   boidSettings.edgeMargin   = 200.0;
-  boidSettings.edgeStrength = 0.2;
+  boidSettings.edgeStrength = 0.4;
   
   camSettings.maxSpeed = boidSettings.maxSpeed;
   
