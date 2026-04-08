@@ -1,0 +1,7 @@
+must have	: working boids in 3d.
+
+should have	: rendering of boids with direction. compile changeable settings.
+
+could have	: interaction like magnet that can push/pull boids. runtime changeable settings.
+
+wont have	: supporting like 10k's of boids
