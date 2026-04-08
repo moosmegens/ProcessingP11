@@ -1,0 +1,89 @@
+class ball
+{
+  float x;
+  float y;
+  color c;
+  float dia;
+  float xs;
+  float ys;
+  
+  ball(float x, float y, color c, float dia, float xs, float ys)
+  {
+    this.x = x;
+    this.y = y;
+    this.c = c;
+    this.dia = dia;
+    this.xs = xs;
+    this.ys = ys;
+  }
+  
+  public void update_and_display()
+  {
+    x += xs;
+    y += ys;
+    
+    teleport();
+    
+    fill(c);
+    ellipse(x, y, get_update_dia(), get_update_dia());
+  }
+  
+  void teleport()
+  {
+    if (x > width + get_update_dia()/2)     { x = 0; x = -get_update_dia()/2; };
+    if (y > height + get_update_dia()/2)    { y = 0; y = -get_update_dia()/2; };
+  }
+  
+  float get_update_dia()
+  {
+   float doff = map(x, 0, width, 0.1, 1);
+   
+   return dia*doff;
+  }
+}
+
+color random_color()
+{
+  return color(random(360), random(90, 100), 100, random(1, 20));
+}
+
+int num_balls = 30;
+ball[] balls;
+
+
+void setup()
+{
+  background(220);
+
+  colorMode(HSB, 360, 100, 100, 100);
+  frameRate(240);
+  
+  size(1000, 1000);
+  noStroke();
+  balls = new ball[num_balls];
+  for (int i = 0; i < num_balls; i++)
+  {
+    balls[i] = new ball(
+      random( width/1.1),
+      random(height/1.1),
+      random_color(),
+      random(20.0, 100.0),
+      random(0.5, 1.5),
+      1
+    );
+  }
+}
+
+void draw()
+{
+  for (int X = 0; X < 5; X++) 
+    for (int i = 0; i < num_balls; i++) 
+      balls[i].update_and_display();
+}
+
+
+
+
+
+
+
