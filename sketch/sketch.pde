@@ -5,7 +5,7 @@ BoidSettings boidSettings;
 BoidManager  boidManager;
 
 void setup()
-{
+{ 
   size(800, 800, P3D);
   
   camSettings = new CameraSettings();
@@ -26,14 +26,12 @@ void setup()
   boidSettings.aliWeight = 1.6;
   boidSettings.cohWeight = 1.0;
   
-  boidSettings.edgeMargin   = 200.0;
+  boidSettings.edgeMargin   = 100.0;
   boidSettings.edgeStrength = 0.4;
   
   camSettings.maxSpeed = boidSettings.maxSpeed;
   
-  boidManager  = new BoidManager(scene, boidSettings, 20000);
-  
-  fullScreen(P3D);
+  boidManager  = new BoidManager(scene, boidSettings, 20_000);
 }
 
 void draw()
@@ -47,6 +45,8 @@ void draw()
   boidManager.render();
 
   cam.drawCrosshair();
+  
+  println(frameRate);
 }
 
 void mouseWheel(MouseEvent event)

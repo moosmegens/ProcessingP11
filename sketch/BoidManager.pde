@@ -142,6 +142,7 @@ class BoidManager
       try { f.get(); }
       catch (Exception e) { e.printStackTrace(); }
     }
+    
 
     for (Boid b : boids) b.update();
   }
