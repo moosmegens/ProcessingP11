@@ -9,7 +9,7 @@ void setup()
   size(800, 800, P3D);
   
   camSettings = new CameraSettings();
-  camSettings.fov = 110;
+  camSettings.fov = 100;
   
   cam = new Camera3D(new PVector(0, 0, 0), camSettings);
   
@@ -20,16 +20,20 @@ void setup()
   boidSettings.maxSpeed = 3.0;
   boidSettings.maxForce = 0.08;
   
-  boidSettings.perception = 100.0;
+  boidSettings.perception = 128.0;
   
   boidSettings.sepWeight = 1.6;
-  boidSettings.aliWeight = 1.0;
+  boidSettings.aliWeight = 1.6;
   boidSettings.cohWeight = 1.0;
   
   boidSettings.edgeMargin   = 200.0;
   boidSettings.edgeStrength = 0.2;
   
-  boidManager  = new BoidManager(scene, boidSettings, 8000);
+  camSettings.maxSpeed = boidSettings.maxSpeed;
+  
+  boidManager  = new BoidManager(scene, boidSettings, 20000);
+  
+  fullScreen(P3D);
 }
 
 void draw()
@@ -43,6 +47,12 @@ void draw()
   boidManager.render();
 
   cam.drawCrosshair();
+}
+
+void mouseWheel(MouseEvent event)
+{
+  camSettings.fov += event.getCount() * 4;
+  camSettings.fov = constrain(camSettings.fov, 1.0, 140.0);
 }
 
 void keyPressed()  { cam.keyPressed(key, keyCode); }
