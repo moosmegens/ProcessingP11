@@ -1,17 +1,31 @@
+import java.util.concurrent.*;
+
 class BoidManager
 {
   ArrayList<Boid>       boids;
   ArrayList<Boid>[][][] chunks;
   Scene                 scene;
   BoidSettings          settings;
+  
 
   int numX, numY, numZ;
   boolean showChunks = false;
+  
+  ArrayList<ArrayList<Boid>> usedChunks;
+
+  ExecutorService pool;
+  int threadCount;
 
   BoidManager(Scene scene, BoidSettings settings, int count)
   {
+    this.threadCount = Runtime.getRuntime().availableProcessors();
+    this.pool        = Executors.newFixedThreadPool(threadCount);
+    
     this.scene    = scene;
     this.settings = settings;
+    
+    boids = new ArrayList<Boid>(count);
+    usedChunks = new ArrayList<>();
 
     boids = new ArrayList<Boid>();
     for (int i = 0; i < count; i++)
@@ -30,12 +44,15 @@ class BoidManager
     numX = ceil((scene.W * 2) / settings.perception);
     numY = ceil((scene.H * 2) / settings.perception);
     numZ = ceil((scene.D * 2) / settings.perception);
-
+    
     chunks = new ArrayList[numX][numY][numZ];
+
+    int avg = max(16, boids.size() / max(1, numX * numY * numZ));
+
     for (int x = 0; x < numX; x++)
       for (int y = 0; y < numY; y++)
         for (int z = 0; z < numZ; z++)
-          chunks[x][y][z] = new ArrayList<Boid>();
+          chunks[x][y][z] = new ArrayList<Boid>(avg);
   }
 
   int chunkX(float x) { return constrain((int)((x + scene.W) / settings.perception), 0, numX-1); }
@@ -44,37 +61,46 @@ class BoidManager
 
   void rebuildChunks()
   {
-    for (int x = 0; x < numX; x++)
-      for (int y = 0; y < numY; y++)
-        for (int z = 0; z < numZ; z++)
-          chunks[x][y][z].clear();
+    for (ArrayList<Boid> cell : usedChunks)
+      cell.clear();
+      
+    usedChunks.clear();
 
     for (Boid b : boids)
-      chunks[chunkX(b.pos.x)][chunkY(b.pos.y)][chunkZ(b.pos.z)].add(b);
+    {
+      int cx = chunkX(b.pos.x);
+      int cy = chunkY(b.pos.y);
+      int cz = chunkZ(b.pos.z);
+
+      ArrayList<Boid> cell = chunks[cx][cy][cz];
+
+      if (cell.isEmpty()) usedChunks.add(cell);
+
+      cell.add(b);
+    }
   }
 
-  ArrayList<Boid> getNeighbors(Boid b)
+  void getNeighbors(Boid b, ArrayList<Boid> buffer)
   {
-    ArrayList<Boid> result = new ArrayList<Boid>();
-    int cx = chunkX(b.pos.x);
-    int cy = chunkY(b.pos.y);
-    int cz = chunkZ(b.pos.z);
-
+    buffer.clear();
     for (int dx = -1; dx <= 1; dx++)
     {
-      int nx = cx + dx; if (nx < 0 || nx >= numX) continue;
+      int nx = chunkX(b.pos.x) + dx;
+      if (nx < 0 || nx >= numX) continue;
       for (int dy = -1; dy <= 1; dy++)
       {
-        int ny = cy + dy; if (ny < 0 || ny >= numY) continue;
+        int ny = chunkY(b.pos.y) + dy;
+        if (ny < 0 || ny >= numY) continue;
         for (int dz = -1; dz <= 1; dz++)
         {
-          int nz = cz + dz; if (nz < 0 || nz >= numZ) continue;
-          result.addAll(chunks[nx][ny][nz]);
+          int nz = chunkZ(b.pos.z) + dz;
+          if (nz < 0 || nz >= numZ) continue;
+          ArrayList<Boid> cell = chunks[nx][ny][nz];
+          if (!cell.isEmpty())
+            for (int i = 0; i < cell.size(); i++) buffer.add(cell.get(i));
         }
       }
     }
-
-    return result;
   }
   
   color chunkColor(int cx, int cy, int cz, int alpha)
@@ -89,12 +115,35 @@ class BoidManager
   void update()
   {
     rebuildChunks();
-    for (Boid b : boids)
+
+    int batchSize = max(1, boids.size() / threadCount);
+    ArrayList<Future<?>> futures = new ArrayList<>();
+
+    for (int t = 0; t < threadCount; t++)
     {
-      b.avoidEdges(scene);
-      b.flock(getNeighbors(b));
-      b.update();
+      int start = t * batchSize;
+      int end   = (t == threadCount - 1) ? boids.size() : start + batchSize;
+
+      futures.add(pool.submit(() ->
+      {
+        ArrayList<Boid> localBuffer = new ArrayList<>(256);
+        for (int i = start; i < end; i++)
+        {
+          Boid b = boids.get(i);
+          b.avoidEdges(scene);
+          getNeighbors(b, localBuffer);
+          b.flock(localBuffer);
+        }
+      }));
     }
+
+    for (Future<?> f : futures)
+    {
+      try { f.get(); }
+      catch (Exception e) { e.printStackTrace(); }
+    }
+
+    for (Boid b : boids) b.update();
   }
   
   void renderChunks()
