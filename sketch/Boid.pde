@@ -3,6 +3,8 @@ class BoidSettings
   float maxSpeed   = 3.0;
   float maxForce   = 0.08;
   float perception = 80.0;
+  
+  float sepRadius = 0.5; // perception * sepRadius
 
   float sepWeight = 1.6;
   float aliWeight = 1.0;
@@ -11,10 +13,22 @@ class BoidSettings
   float edgeMargin   = 100.0;
   float edgeStrength = 0.3;
   
+  float sepAngle = -1;
+  float aliAngle = -1;
+  float cohAngle = -1;
+  
   float startHue = 0;
   float endHue = 360;
   
+  float startCohBrightness = 1000;
+  float endCohBrightness = 100;
+  
   int trailLength = 128;
+  
+  float angleToDot(float degrees)
+  {
+    return cos(radians(degrees));
+  }
   
   final float ROOT3 = sqrt(3);
 }
@@ -28,8 +42,8 @@ class Boid
   int       trailHead  = 0;
   int       trailCount = 0;
 
-  float cachedHue   = 0;
-  float cachedSpeed = 1;
+  float cachedHue = 0;
+  float cachedBrightness = 100;
 
   Boid(float x, float y, float z, BoidSettings settings)
   {
@@ -37,6 +51,7 @@ class Boid
     pos = new PVector(x, y, z);
     vel = PVector.random3D().mult(random(1.5, settings.maxSpeed));
     acc = new PVector();
+    cachedBrightness = settings.startCohBrightness;
     resetTrail();
   }
   
@@ -154,8 +169,10 @@ class Boid
     PVector sep = new PVector();
     PVector ali = new PVector();
     PVector coh = new PVector();
-    int sepCount = 0, aliCount = 0;
-    float desiredSep = settings.perception * 0.5;
+    int sepCount = 0, aliCount = 0, cohCount = 0;
+    float desiredSep = settings.perception * settings.sepRadius;
+  
+    PVector heading = vel.copy().normalize();
   
     for (int i = 0; i < neighbors.size(); i++)
     {
@@ -165,13 +182,24 @@ class Boid
       float d = PVector.dist(pos, o.pos);
       if (d <= 0 || d >= settings.perception) continue;
   
-      ali.add(o.vel);
-      coh.add(o.pos);
-      aliCount++;
+      float invD = 1.0 / d;
+      float dx = (o.pos.x - pos.x) * invD;
+      float dy = (o.pos.y - pos.y) * invD;
+      float dz = (o.pos.z - pos.z) * invD;
+      float dp = heading.x*dx + heading.y*dy + heading.z*dz;
   
-      if (d < desiredSep)
+      boolean inAli = dp >= settings.aliAngle;
+      boolean inCoh = dp >= settings.cohAngle;
+      boolean inSep = dp >= settings.sepAngle;
+      if (!inAli && !inCoh && !inSep) continue;
+  
+      if (inAli) { ali.add(o.vel); aliCount++; }
+      if (inCoh) { coh.add(o.pos); cohCount++; }
+      if (inSep && d < desiredSep && settings.sepRadius > 0)
       {
-        sep.add(PVector.sub(pos, o.pos).normalize().div(d));
+        PVector away = new PVector(pos.x - o.pos.x, pos.y - o.pos.y, pos.z - o.pos.z);
+        away.normalize().div(d);
+        sep.add(away);
         sepCount++;
       }
     }
@@ -183,10 +211,17 @@ class Boid
     }
   
     if (aliCount > 0)
-    {
       ali.div(aliCount).normalize().mult(settings.maxSpeed).sub(vel).limit(settings.maxForce);
-      coh.div(aliCount);
-      coh = PVector.sub(coh, pos).normalize().mult(settings.maxSpeed).sub(vel).limit(settings.maxForce);
+  
+    if (cohCount > 0)
+    {
+      coh.div(cohCount);
+      PVector desired = PVector.sub(coh, pos);
+      coh = desired.copy().normalize().mult(settings.maxSpeed).sub(vel).limit(settings.maxForce);
+  
+      float distToCenter = desired.mag();
+      float maxDist = settings.perception;
+      cachedBrightness = map(distToCenter, 0, maxDist, settings.endCohBrightness, settings.startCohBrightness); 
     }
   
     applyForce(sep.mult(settings.sepWeight));
@@ -200,12 +235,12 @@ class Boid
     float mag   = sqrt(nx*nx + ny*ny + nz*nz);
     if (mag > 0) { nx /= mag; ny /= mag; nz /= mag; }
     cachedHue   = map(nx + ny + nz, -settings.ROOT3, settings.ROOT3, settings.startHue, settings.endHue);
-    cachedSpeed = map(mag, 0, settings.maxSpeed, 0.5, 1.0);
+    //cachedSpeed = map(mag, 0, settings.maxSpeed, 0.2, 1.0);
   }
 
   void render()
   {
-    fill(cachedHue, 75, cachedSpeed * 100);
+    fill(cachedHue, 90, cachedBrightness);
 
     pushMatrix();
     translate(pos.x, pos.y, pos.z);
@@ -242,7 +277,7 @@ class Boid
     {
       int   idx = (trailHead - trailCount + i + settings.trailLength) % settings.trailLength;
       float t   = (float)i / trailCount;
-          stroke(cachedHue, 75, cachedSpeed * 100, t*80);
+      stroke(cachedHue, 75, 100, t*80);
       vertex(trail[idx].x, trail[idx].y, trail[idx].z);
     }
     endShape();

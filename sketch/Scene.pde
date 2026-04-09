@@ -14,8 +14,8 @@ class Scene
   {
     pushStyle();
     noFill();
-    stroke(255, 100);
-    strokeWeight(1);
+    stroke(255, 10);
+    strokeWeight(0.5);
     PVector[] c = corners();
 
     edge(c[0], c[1]); edge(c[1], c[2]); edge(c[2], c[3]); edge(c[3], c[0]);

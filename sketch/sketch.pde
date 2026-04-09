@@ -9,32 +9,27 @@ boolean c = true;
 
 void setup()
 { 
-  size(800, 800, P3D);
+  fullScreen(P3D);
   
   camSettings = new CameraSettings();
+  
   camSettings.fov = 100;
+  camSettings.speed = 5;
+  camSettings.maxSpeed = 20;
+  camSettings.friction = 0.85;
+
+  boidSettings = new BoidSettings();
+  presets.ApplyNormalSpeeds(boidSettings);
+  presets.ApplyChaos(boidSettings);
+  
+  boidSettings.startCohBrightness = 0; boidSettings.endCohBrightness = 100;
+  
+  boidSettings.edgeMargin   = 100.0; boidSettings.edgeStrength = 0.4;
   
   cam = new Camera3D(new PVector(0, 0, 0), camSettings);
-  
-  scene = new Scene(2000, 2000, 2000);
-  
-  boidSettings = new BoidSettings();
-  
-  boidSettings.maxSpeed = 3.0;
-  boidSettings.maxForce = 0.04;
-  
-  boidSettings.perception = 60.0;
-  
-  boidSettings.sepWeight = 1.6;
-  boidSettings.aliWeight = 1.2;
-  boidSettings.cohWeight = 1.0;
-  
-  boidSettings.edgeMargin   = 100.0;
-  boidSettings.edgeStrength = 0.4;
-  
-  camSettings.maxSpeed = boidSettings.maxSpeed;
-  
-  boidManager  = new BoidManager(scene, boidSettings, 20_000);
+  float s = 500;
+  scene = new Scene(s, s, s);
+  boidManager  = new BoidManager(scene, boidSettings, 2_000);
 }
 
 void draw()
@@ -43,6 +38,7 @@ void draw()
   cam.update();
 
   boidManager.update();
+  
   if (c) scene.draw();
   boidManager.render();
 
@@ -74,6 +70,8 @@ void keyReleased()
   {
     boidManager.selectClosest(cam.pos, 512);
   }
+  
+  if (key == 'L') boidManager.selectClosest(cam.pos, 1000000);
   
   cam.keyReleased(key, keyCode); 
 }
