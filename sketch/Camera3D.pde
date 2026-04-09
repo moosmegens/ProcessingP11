@@ -136,7 +136,7 @@ class Camera3D
   {
     PVector center = PVector.add(pos, forward());
     float cameraZ = (height/2.0) / tan(radians(settings.fov)/2.0);
-    perspective(radians(settings.fov), float(width)/float(height), cameraZ/50.0, cameraZ*10.0);
+    perspective(radians(settings.fov), float(width)/float(height), cameraZ/50.0, cameraZ*50.0);
     camera(pos.x, pos.y, pos.z, center.x, center.y, center.z, 0, 1, 0);
   }
 

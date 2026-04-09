@@ -14,6 +14,8 @@ class BoidSettings
   float startHue = 0;
   float endHue = 360;
   
+  int trailLength = 128;
+  
   final float ROOT3 = sqrt(3);
 }
 
@@ -21,6 +23,13 @@ class Boid
 {
   PVector pos, vel, acc;
   BoidSettings settings;
+  
+  PVector[] trail;
+  int       trailHead  = 0;
+  int       trailCount = 0;
+
+  float cachedHue   = 0;
+  float cachedSpeed = 1;
 
   Boid(float x, float y, float z, BoidSettings settings)
   {
@@ -28,6 +37,14 @@ class Boid
     pos = new PVector(x, y, z);
     vel = PVector.random3D().mult(random(1.5, settings.maxSpeed));
     acc = new PVector();
+    resetTrail();
+  }
+  
+  void resetTrail()
+  {
+    trail      = new PVector[settings.trailLength];
+    trailHead  = 0;
+    trailCount = 0;
   }
 
   void applyForce(PVector f)
@@ -35,8 +52,15 @@ class Boid
     acc.add(f);
   }
 
-  void update()
+  void update(boolean recordTrail)
   {
+    if (recordTrail)
+    {
+      trail[trailHead] = pos.copy();
+      trailHead        = (trailHead + 1) % settings.trailLength;
+      if (trailCount < settings.trailLength) trailCount++;
+    }
+    
     vel.add(acc);
     vel.limit(settings.maxSpeed);
     pos.add(vel);
@@ -169,51 +193,59 @@ class Boid
     applyForce(ali.mult(settings.aliWeight));
     applyForce(coh.mult(settings.cohWeight));
   }
+  
+  void updateCache()
+  {
+    float nx    = vel.x, ny = vel.y, nz = vel.z;
+    float mag   = sqrt(nx*nx + ny*ny + nz*nz);
+    if (mag > 0) { nx /= mag; ny /= mag; nz /= mag; }
+    cachedHue   = map(nx + ny + nz, -settings.ROOT3, settings.ROOT3, settings.startHue, settings.endHue);
+    cachedSpeed = map(mag, 0, settings.maxSpeed, 0.5, 1.0);
+  }
 
   void render()
   {
+    fill(cachedHue, 75, cachedSpeed * 100);
+
     pushMatrix();
     translate(pos.x, pos.y, pos.z);
-    
-    float yaw   = atan2(vel.x, vel.z);
-    float pitch = atan2(-vel.y, sqrt(vel.x * vel.x + vel.z * vel.z));
-    
-    rotateY(yaw);
-    rotateX(pitch);
-    
-    PVector n = vel.copy().normalize();
-    float speed = map(vel.mag(), 0, settings.maxSpeed, 0.5, 1.0);
-  
-    pushStyle();
-    colorMode(HSB, 360, 100, 100);
-    
-    float hue = map(n.x + n.y + n.z,
-          -settings.ROOT3, settings.ROOT3,
-          settings.startHue, settings.endHue);
-      
-    fill(hue, 75, speed * 100);
-    colorMode(RGB, 255, 255, 255);
-    
-    PVector top = new PVector(0, 0, 8);
-    PVector v1  = new PVector(-3, -3, -4);
-    PVector v2  = new PVector( 3, -3, -4);
-    PVector v3  = new PVector( 0,  3, -4);
-    
+    rotateY(atan2(vel.x, vel.z));
+    rotateX(atan2(-vel.y, sqrt(vel.x * vel.x + vel.z * vel.z)));
+
     beginShape(TRIANGLES);
-    
-    v(v1); v(v2); v(v3); // base
+    vertex( 0,  0,  8);
+    vertex(-3, -3, -4);
+    vertex( 3, -3, -4);
 
-    v(top); v(v1); v(v2);
-    v(top); v(v1); v(v3);
-    v(top); v(v2); v(v3);
+    vertex( 0,  0,  8);
+    vertex(-3, -3, -4);
+    vertex( 0,  3, -4);
 
+    vertex( 0,  0,  8);
+    vertex( 3, -3, -4);
+    vertex( 0,  3, -4);
 
+    vertex(-3, -3, -4);
+    vertex( 3, -3, -4);
+    vertex( 0,  3, -4);
     endShape();
-    
 
     popMatrix();
-    
-    popStyle();
+  }
+  
+  void drawTrail()
+  {
+    if (trailCount < 2) return;
+
+    beginShape();
+    for (int i = 0; i < trailCount; i++)
+    {
+      int   idx = (trailHead - trailCount + i + settings.trailLength) % settings.trailLength;
+      float t   = (float)i / trailCount;
+          stroke(cachedHue, 75, cachedSpeed * 100, t*80);
+      vertex(trail[idx].x, trail[idx].y, trail[idx].z);
+    }
+    endShape();
   }
 
   private void v(PVector p) { vertex(p.x, p.y, p.z); }

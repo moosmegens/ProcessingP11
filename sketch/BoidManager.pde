@@ -1,9 +1,11 @@
 import java.util.concurrent.*;
+import java.util.HashSet;
 
 class BoidManager
 {
   ArrayList<Boid>       boids;
   ArrayList<Boid>[][][] chunks;
+  HashSet<Boid>         selected;
   Scene                 scene;
   BoidSettings          settings;
   
@@ -26,8 +28,8 @@ class BoidManager
     
     boids = new ArrayList<Boid>(count);
     usedChunks = new ArrayList<>();
+    selected   = new HashSet<Boid>();
 
-    boids = new ArrayList<Boid>();
     for (int i = 0; i < count; i++)
       boids.add(new Boid(
         random(-scene.W, scene.W),
@@ -53,6 +55,9 @@ class BoidManager
       for (int y = 0; y < numY; y++)
         for (int z = 0; z < numZ; z++)
           chunks[x][y][z] = new ArrayList<Boid>(avg);
+          
+    for (Boid b : boids) b.resetTrail();
+    selected.clear();
   }
 
   int chunkX(float x) { return constrain((int)((x + scene.W) / settings.perception), 0, numX-1); }
@@ -78,6 +83,29 @@ class BoidManager
 
       cell.add(b);
     }
+  }
+  
+  void selectClosest(PVector origin, int count)
+  {
+    for (Boid b : selected) b.resetTrail();
+    selected.clear();
+
+    boids.sort((a, b) -> Float.compare(
+      PVector.dist(a.pos, origin),
+      PVector.dist(b.pos, origin)
+    ));
+
+    for (int i = 0; i < min(count, boids.size()); i++)
+    {
+      selected.add(boids.get(i));
+      boids.get(i).resetTrail();
+    }
+  }
+
+  void selectNone()
+  {
+    for (Boid b : selected) b.resetTrail();
+    selected.clear();
   }
 
   void getNeighbors(Boid b, ArrayList<Boid> buffer)
@@ -144,7 +172,8 @@ class BoidManager
     }
     
 
-    for (Boid b : boids) b.update();
+    boolean doTrail = !selected.isEmpty();
+    for (Boid b : boids) b.update(doTrail && selected.contains(b));
   }
   
   void renderChunks()
@@ -177,11 +206,28 @@ class BoidManager
   void render()
   {
     if (showChunks) renderChunks();
-    
-    fill(180, 210, 255);
+  
+    pushStyle();
+    colorMode(HSB, 360, 100, 100);
     noStroke();
+  
+    for (Boid b : boids) b.updateCache();
+  
     for (Boid b : boids)
+    {
       b.render();
+    }
+  
+    stroke(255);
+    strokeWeight(2.0);
+    if (!selected.isEmpty())
+    {
+      noFill();
+      for (Boid b : selected) b.drawTrail();
+    }
+  
+    popStyle();
+    colorMode(RGB, 255, 255, 255);
   }
 
   void run()

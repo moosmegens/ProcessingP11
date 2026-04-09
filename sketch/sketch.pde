@@ -4,6 +4,9 @@ Scene scene;
 BoidSettings boidSettings;
 BoidManager  boidManager;
 
+boolean bg = true;
+boolean c = true;
+
 void setup()
 { 
   size(800, 800, P3D);
@@ -13,17 +16,17 @@ void setup()
   
   cam = new Camera3D(new PVector(0, 0, 0), camSettings);
   
-  scene = new Scene(2500, 2500, 2500);
+  scene = new Scene(2000, 2000, 2000);
   
   boidSettings = new BoidSettings();
   
   boidSettings.maxSpeed = 3.0;
   boidSettings.maxForce = 0.04;
   
-  boidSettings.perception = 128.0;
+  boidSettings.perception = 60.0;
   
   boidSettings.sepWeight = 1.6;
-  boidSettings.aliWeight = 1.6;
+  boidSettings.aliWeight = 1.2;
   boidSettings.cohWeight = 1.0;
   
   boidSettings.edgeMargin   = 100.0;
@@ -36,12 +39,11 @@ void setup()
 
 void draw()
 {
-  background(0);
+  if (bg) background(0);
   cam.update();
-  ambientLight(200, 200, 200);
 
   boidManager.update();
-  scene.draw();
+  if (c) scene.draw();
   boidManager.render();
 
   cam.drawCrosshair();
@@ -59,5 +61,19 @@ void keyPressed()  { cam.keyPressed(key, keyCode); }
 void keyReleased() 
 {
   if (key == 'c') boidManager.showChunks = !boidManager.showChunks;
+  
+  if (key == 'b') bg = !bg;
+  
+  if (key == 'C') c = !c;
+  
+  if (key == 'T')
+  {
+    boidManager.selectNone();
+  }
+  else if (key == 't')
+  {
+    boidManager.selectClosest(cam.pos, 512);
+  }
+  
   cam.keyReleased(key, keyCode); 
 }
