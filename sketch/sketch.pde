@@ -20,16 +20,19 @@ void setup()
 
   boidSettings = new BoidSettings();
   presets.ApplyNormalSpeeds(boidSettings);
-  presets.ApplyChaos(boidSettings);
+  //presets.ApplyChaos(boidSettings);
+  presets.ApplyPerfect(boidSettings);
   
-  boidSettings.startCohBrightness = 0; boidSettings.endCohBrightness = 100;
+  boidSettings.startCohBrightness = 50;
+  boidSettings.endCohBrightness = 100;
   
-  boidSettings.edgeMargin   = 100.0; boidSettings.edgeStrength = 0.4;
+  boidSettings.edgeMargin = 100.0;
+  boidSettings.edgeStrength = 0.4;
   
   cam = new Camera3D(new PVector(0, 0, 0), camSettings);
-  float s = 500;
+  float s = 960;
   scene = new Scene(s, s, s);
-  boidManager  = new BoidManager(scene, boidSettings, 2_000);
+  boidManager  = new BoidManager(scene, boidSettings, 10_000);
 }
 
 void draw()
